@@ -1,0 +1,2 @@
+model,channel,accuracy,precision,recall,f1,auc,far,frr
+vgg16,grayscale,0.9395,0.6697237569060774,0.6975,0.6827899708786135,0.7423055555555556,0.0,0.605

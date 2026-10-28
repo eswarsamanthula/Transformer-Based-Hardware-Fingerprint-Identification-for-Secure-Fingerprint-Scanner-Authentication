@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THFSA — Scanner Fingerprint Identification Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>try{var t=localStorage.getItem("thfsa-theme");if(t?t==="dark":(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">THFSA <span class="dot">◉</span><span class="refno">REF · D2/2019</span></div>
+      <nav class="nav">
+        <a href="/results">results</a>
+        <a href="/" class="on">dashboard</a>
+        <a href="/archive">archive</a>
+        <a href="/auth">auth</a>
+      </nav>
+      <span class="mastbar" aria-hidden="true"></span>
+      <div class="chips">
+        <span class="chip hot">trained from scratch</span>
+        <span class="chip">no augmentation</span>
+        <span class="chip">grayscale + rgb</span>
+      </div>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle light or dark theme"><span class="sun">☀︎</span><span class="moon">☾︎</span></button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-grid"></div>
+    <div class="wrap hero-body">
+      <div>
+        <p class="kicker">Benchmark · 2026 · R307 Corpus</p>
+        <h1>Hardware fingerprint<br>sensor <span class="amp">identification</span></h1>
+        <p class="lede">
+          <strong>THFSA</strong> compares <strong>6 CNN baselines</strong> and
+          <strong>8 Transformer / hybrid backbones</strong>, trained from scratch
+          on 2,019 raw fingerprints, evaluated on the unseen-user
+          <strong>Dataset&nbsp;2</strong>. Numbers below are read directly from
+          <span class="mono-tag">results/tables/*.csv</span> and
+          <span class="mono-tag">logs/training/</span>.
+        </p>
+        <div class="kpis">
+          <div class="kpi" style="--accent:var(--amber)">
+            <div class="label">Best test accuracy</div>
+            <div class="val" id="kpi-best" data-v="0">—</div>
+            <div class="sub" id="kpi-best-sub"></div>
+          </div>
+          <div class="kpi" style="--accent:var(--amber)">
+            <div class="label">Grayscale best</div>
+            <div class="val" id="kpi-gray" data-v="0">—</div>
+            <div class="sub" id="kpi-gray-sub"></div>
+          </div>
+          <div class="kpi" style="--accent:var(--cyan)">
+            <div class="label">RGB best</div>
+            <div class="val" id="kpi-rgb" data-v="0">—</div>
+            <div class="sub" id="kpi-rgb-sub"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ridge">
+        <svg viewBox="0 0 260 260" aria-hidden="true">
+          <g fill="none" stroke="rgba(23,21,15,.7)">
+            <circle cx="130" cy="130" r="122" stroke-dasharray="8 13" stroke="rgba(23,21,15,.22)"/>
+            <circle cx="130" cy="130" r="102" stroke-dasharray="14 7" stroke="rgba(23,21,15,.4)"/>
+            <circle cx="130" cy="130" r="80"  stroke-dasharray="9 9"  opacity=".5"/>
+            <circle cx="130" cy="130" r="60"  stroke-dasharray="16 6" opacity=".75"/>
+            <circle cx="130" cy="130" r="38"  stroke-dasharray="7 10" opacity=".55"/>
+            <circle cx="130" cy="130" r="16"  stroke="#c94810" stroke-dasharray="5 6"/>
+          </g>
+          <g stroke="rgba(23,21,15,.45)" stroke-width="1">
+            <path d="M130 0v18M130 242v18M0 130h18M242 130h18"/>
+            <path d="M130 130 205 55M130 130 55 60M130 130 204 202" stroke="#c94810" stroke-dasharray="2 6" opacity=".6"/>
+          </g>
+          <circle cx="130" cy="130" r="3" fill="#c94810" opacity=".95"/>
+        </svg>
+        <div class="sweep"></div>
+        <div class="tag">acquisition-device identification</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="err" class="wrap" hidden></div>
+
+  <main class="wrap">
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">01</span>
+        <h2>Leaderboard — multiclass scanner ID</h2>
+        <span class="hint">Dataset 2 · unseen users · val = Dataset 1</span>
+      </div>
+      <div class="panel">
+        <table class="data" id="tbl-multi">
+          <thead>
+            <tr>
+              <th>Model</th><th>Ch</th>
+              <th>Val acc</th><th>Val F1</th><th>Val AUC</th>
+              <th>Test acc</th><th>Test F1</th><th>Test AUC</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">02</span>
+        <h2>Test accuracy by architecture</h2>
+        <span class="hint">grayscale vs rgb · sorted by best</span>
+      </div>
+      <div class="panel">
+        <div class="chart-wrap"><canvas id="chart-acc"></canvas></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">03</span>
+        <h2>Training curves</h2>
+        <span class="hint">per-epoch logs · early stop patience 10</span>
+      </div>
+      <div class="panel charts-2">
+        <div>
+          <div class="curves-head" style="padding:14px 16px 0">
+            <select id="run"></select>
+            <span class="run-meta" id="run-meta"></span>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-loss"></canvas></div>
+        </div>
+        <div>
+          <div style="padding:14px 16px 0">
+            <span class="run-meta">train/val accuracy — same run</span>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-acc-2"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">04</span>
+        <h2>One-vs-all scanner verification</h2>
+        <span class="hint">binary mobilenet · Dataset 2 test set</span>
+      </div>
+      <div class="panel">
+        <table class="data" id="tbl-binary">
+          <thead>
+            <tr>
+              <th>Scanner</th><th>Ch</th>
+              <th>Acc</th><th>F1</th><th>AUC</th>
+              <th>FAR</th><th>FRR</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%">
+      <span>THFSA — transformer-based hardware fingerprint identification</span>
+      <span>sources: results/tables · logs/training</span>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  <script>
+    (function () {
+      document.getElementById("theme-btn").addEventListener("click", function () {
+        var on = document.documentElement.classList.toggle("dark");
+        try { localStorage.setItem("thfsa-theme", on ? "dark" : "light"); } catch (e) {}
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+model,experiment_id,channel,pretrained,split,accuracy,precision,recall,f1,auc
+EfficientFormer-L1,efficientformer_l1_rgb_pretrained_lr1e4,rgb,True,validation_dataset1,0.9867986798679867,0.9860103785103785,0.9898558657179347,0.9876622551207088,0.9994131029817801
+EfficientFormer-L1,efficientformer_l1_rgb_pretrained_lr1e4,rgb,True,test_dataset2,0.88,0.9163576761402847,0.8800000000000001,0.8751452930955175,0.9895555555555555

@@ -1,0 +1,10 @@
+torch>=2.1
+timm>=0.9
+numpy
+Pillow
+scikit-learn
+matplotlib
+flask
+bcrypt
+pyotp
+qrcode

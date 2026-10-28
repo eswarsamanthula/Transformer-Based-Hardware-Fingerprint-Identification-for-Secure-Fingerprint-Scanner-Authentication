@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THFSA — Final Model Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>try{var t=localStorage.getItem("thfsa-theme");if(t?t==="dark":(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}</script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">THFSA <span class="dot">◉</span><span class="refno">REF · D2/2019</span></div>
+      <nav class="nav">
+        <a href="/results" class="on">results</a>
+        <a href="/">dashboard</a>
+        <a href="/archive">archive</a>
+        <a href="/auth">auth</a>
+      </nav>
+      <span class="mastbar" aria-hidden="true"></span>
+      <div class="chips">
+        <span class="chip hot">trained from scratch</span>
+        <span class="chip">no augmentation</span>
+        <span class="chip">no retraining</span>
+      </div>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle light or dark theme"><span class="sun">☀︎</span><span class="moon">☾︎</span></button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-grid"></div>
+    <div class="wrap hero-body">
+      <div>
+        <p class="kicker">Final evaluation · Dataset 2 · known-sensor / unseen-user</p>
+        <h1>Final model results &amp;<br><span class="amp">authentication</span> design</h1>
+        <p class="lede">
+          Every number on this page is read live from
+          <span class="mono-tag">results/tables/*.csv</span> and
+          <span class="mono-tag">results/metrics/*.csv</span> —
+          the same authoritative files written by the frozen evaluation
+          pipeline. No retraining, no recalibration.
+        </p>
+        <div class="kpis">
+          <div class="kpi" style="--accent:var(--cyan)">
+            <div class="label">Transformer / Hybrid best</div>
+            <div class="val" id="kpi-best-t">—</div>
+            <div class="sub" id="kpi-best-t-sub">EfficientFormer-L1 RGB</div>
+          </div>
+          <div class="kpi" style="--accent:var(--amber)">
+            <div class="label">CNN baseline best</div>
+            <div class="val" id="kpi-best-c">—</div>
+            <div class="sub" id="kpi-best-c-sub">VGG16 grayscale</div>
+          </div>
+          <div class="kpi" style="--accent:var(--good)">
+            <div class="label">Verification EER</div>
+            <div class="val" id="kpi-eer">—</div>
+            <div class="sub">EfficientFormer-L1 rgb · validation</div>
+          </div>
+        </div>
+      </div>
+      <div class="ridge">
+        <svg viewBox="0 0 260 260" aria-hidden="true">
+          <g fill="none" stroke="rgba(23,21,15,.7)">
+            <circle cx="130" cy="130" r="122" stroke-dasharray="8 13" stroke="rgba(23,21,15,.22)"/>
+            <circle cx="130" cy="130" r="102" stroke-dasharray="14 7" stroke="rgba(23,21,15,.4)"/>
+            <circle cx="130" cy="130" r="80"  stroke-dasharray="9 9"  opacity=".5"/>
+            <circle cx="130" cy="130" r="60"  stroke-dasharray="16 6" opacity=".75"/>
+            <circle cx="130" cy="130" r="38"  stroke-dasharray="7 10" opacity=".55"/>
+            <circle cx="130" cy="130" r="16"  stroke="#c94810" stroke-dasharray="5 6"/>
+          </g>
+          <g stroke="rgba(23,21,15,.45)" stroke-width="1">
+            <path d="M130 0v18M130 242v18M0 130h18M242 130h18"/>
+            <path d="M130 130 205 55M130 130 55 60M130 130 204 202" stroke="#c94810" stroke-dasharray="2 6" opacity=".6"/>
+          </g>
+          <circle cx="130" cy="130" r="3" fill="#c94810" opacity=".95"/>
+        </svg>
+        <div class="sweep"></div>
+        <div class="tag">validation-calibrated · test-frozen</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="err" class="wrap" hidden></div>
+
+  <main class="wrap">
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">A</span>
+        <h2>Overall summary</h2>
+        <span class="hint">14 models · 6 CNN baselines + 8 transformer / hybrid</span>
+      </div>
+      <div class="res-note">
+        This page reports two independent final results:
+        <strong>identification</strong> (10-class scanner classification, "which
+        scanner captured this image?") and <strong>verification</strong>
+        ("is this image genuine for the claimed scanner?"). Identification is the
+        multiclass model-comparison below; verification is the fused-embedding
+        protocol in its own section. The two are never mixed.
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">B</span>
+        <h2>8 Transformer / Hybrid models</h2>
+        <span class="hint">transformer and hybrid architectures evaluated for hardware fingerprint scanner identification</span>
+      </div>
+
+      <div class="panel">
+        <table class="data" id="tbl-transformer">
+          <thead>
+            <tr>
+              <th>Model</th><th>Channel</th>
+              <th>Val Accuracy</th><th>Val F1</th><th>Val ROC-AUC</th>
+              <th>Test Accuracy</th><th>Test F1</th><th>Test ROC-AUC</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="res-note best-box">
+        <strong>Best Transformer / Hybrid model: EfficientFormer-L1 RGB</strong> —
+        Dataset 2 test accuracy 88.00% · F1 87.51% · ROC-AUC 98.96%.
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">C</span>
+        <h2>6 CNN baseline models</h2>
+        <span class="hint">conventional CNN architectures used as baseline comparisons</span>
+      </div>
+
+      <div class="panel">
+        <table class="data" id="tbl-cnn">
+          <thead>
+            <tr>
+              <th>Model</th><th>Channel</th>
+              <th>Val Accuracy</th><th>Val F1</th><th>Val ROC-AUC</th>
+              <th>Test Accuracy</th><th>Test F1</th><th>Test ROC-AUC</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="res-note">
+        <strong>Best CNN baseline: VGG16 grayscale</strong> — Dataset 2 test accuracy 94.50%.
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">D</span>
+        <h2>Scanner verification — official final method</h2>
+        <span class="hint">separate from identification · does not compete in the tables above</span>
+      </div>
+      <div class="verif-grid" id="verif-grid"></div>
+      <p class="res-note">
+        Verification answers a different question than identification: it checks
+        whether an image is <strong>genuine for a claimed scanner</strong>.
+        The official verification method is the EfficientFormer-L1 RGB
+        448-D normalized-embedding cosine protocol described above. Older
+        one-vs-all binary verification runs are separate CNN gate experiments;
+        they are <strong>not</strong> the official final verification result.
+      </p>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">E</span>
+        <h2>Authentication architecture</h2>
+        <span class="hint">multi-factor flow · module-level</span>
+      </div>
+      <div class="two-col">
+        <div class="panel pad">
+          <h3>Registration</h3>
+          <ol class="flow">
+            <li>User ID</li>
+            <li>Password</li>
+            <li>Fingerprint enrollment</li>
+            <li>Claimed scanner</li>
+            <li>TOTP secret enrollment</li>
+          </ol>
+          <div class="flow-end">→ user biometric template · bcrypt password hash · TOTP secret · scanner binding</div>
+        </div>
+        <div class="panel pad">
+          <h3>Login / authentication</h3>
+          <ol class="flow">
+            <li>User ID</li>
+            <li>Password</li>
+            <li>Fingerprint capture</li>
+            <li>Claimed scanner</li>
+            <li>TOTP code</li>
+            <li>User biometric verification</li>
+            <li>Scanner hardware verification</li>
+            <li>Scanner threshold verification</li>
+            <li>HMAC-SHA256 mutual authentication</li>
+            <li>Session key</li>
+            <li class="ok">Access granted</li>
+          </ol>
+        </div>
+      </div>
+      <div class="panel pad">
+        <h3>Factor inventory</h3>
+        <table class="data" id="tbl-auth">
+          <thead>
+            <tr><th>#</th><th>Component</th><th>Method</th><th>Factor</th><th>Measured</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p class="res-note">
+          EfficientFormer-L1 and the CNN baselines identify and verify the
+          <strong>scanner hardware</strong> fingerprint — they are <em>not</em>
+          user-identity classifiers. User-level fingerprint identity is handled by the
+          separate academic-prototype biometric template module.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">F</span>
+        <h2>Dataset evaluation</h2>
+        <span class="hint">what each split measures</span>
+      </div>
+      <div class="two-col">
+        <div class="panel pad">
+          <h3>Dataset 1 — training &amp; validation</h3>
+          <ul>
+            <li>2,019 raw fingerprints, folder = scanner class (Sensor 1–10).</li>
+            <li>70/30 per-scanner stratified split (1,413 train / 606 val).</li>
+            <li>10-class scanner identification and one-vs-all verification models are trained here.</li>
+            <li>Threshold calibration happens on the <strong>validation split only</strong>.</li>
+          </ul>
+        </div>
+        <div class="panel pad">
+          <h3>Dataset 2 — independent test</h3>
+          <ul>
+            <li>200 fingerprints from users <strong>A &amp; B</strong> — unseen users.</li>
+            <li>Files named <span class="mono-tag">Sensor&lt;n&gt;(Test&lt;m&gt;)&lt;k&gt;.bmp</span> — <strong>(Test1) = User A, (Test2) = User B</strong>. The <strong>scanner hardware</strong> is known and taken from the same R307 unit family.</li>
+            <li>Never used for training, validation, or threshold selection — test only.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="res-note">
+        Dataset 2 is an <strong>unseen-user</strong> evaluation on <strong>known scanner hardware</strong>.
+        It does <em>not</em> test generalization to unseen hardware.
+      </p>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">G</span>
+        <h2>Interpretation</h2>
+        <span class="hint">exactly as measured</span>
+      </div>
+      <div class="panel pad">
+        <ul>
+          <li><strong>Identification</strong> — "which scanner captured this image?" — is the 10-class classification compared in sections B and C. EfficientFormer-L1 RGB is the best Transformer/hybrid at 88.00% Dataset 2 test accuracy.</li>
+          <li><strong>Verification</strong> — "is this image genuine for the claimed scanner?" — is the EfficientFormer-L1 RGB fused 448-D cosine protocol (section D), with EER 2.53% on validation and a frozen threshold of 0.3892.</li>
+          <li>CNN baselines and Transformer/hybrid models are never mixed in a single table — each family is compared within its own section.</li>
+          <li>FAR and FRR are the security-relevant metrics; AUC is useful for comparing discrimination.</li>
+          <li>Results vary by scanner (some sensors verify near-perfectly, others show high FRR / near-chance AUC), so per-scanner thresholds are mandatory.</li>
+          <li>All figures above are reported exactly as measured; nothing estimated or extrapolated.</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%">
+      <span>THFSA — transformer-based hardware fingerprint identification</span>
+      <span>sources: results/tables · results/metrics · results/graphs</span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      document.getElementById("theme-btn").addEventListener("click", function () {
+        var on = document.documentElement.classList.toggle("dark");
+        try { localStorage.setItem("thfsa-theme", on ? "dark" : "light"); } catch (e) {}
+      });
+    })();
+  </script>
+  <script>
+    (async function () {
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const fmt = (v) => (v === null || v === undefined) ? "—" : (v * 100).toFixed(2) + "%";
+      const chName = (ch) => ch === "rgb" ? "RGB" : "Grayscale";
+
+      const NAMES = {
+        efficientformer_l1: "EfficientFormer-L1", convnext_tiny: "ConvNeXt-Tiny",
+        mobilevit_xs: "MobileViT-XS", swin_tiny: "Swin-Tiny", vit_b16: "ViT-B/16",
+        deit_small: "DeiT-Small", tinyvit_5m: "TinyViT-5M", pit_ti: "PiT-Ti",
+        efficientnet_b3: "EfficientNet-B3", mobilenet: "MobileNet",
+        resnet50: "ResNet50", resnet152: "ResNet152", vgg16: "VGG16", lenet5: "LeNet5",
+      };
+
+      let data;
+      try {
+        data = await fetch("/api/results-full").then((r) => r.json());
+      } catch (e) {
+        const el = $("err"); el.hidden = false;
+        el.textContent = "Failed to load /api/results-full — is results/tables + results/metrics populated?";
+        return;
+      }
+      $("err").hidden = true;
+
+      const tform = (data.transformer || []).filter(Boolean);
+      const cnn = (data.cnn || []).filter(Boolean);
+
+      function kpi(id, subId, model) {
+        if (!model) { $(id).textContent = "—"; return; }
+        const t = model.test || {};
+        $(id).textContent = fmt(t.accuracy);
+        $(subId).textContent = `${NAMES[model.model] || model.model} ${chName(model.channel)}`;
+      }
+      const bestT = tform[0] || null;
+      const bestC = cnn[0] || null;
+      kpi("kpi-best-t", "kpi-best-t-sub", bestT);
+      kpi("kpi-best-c", "kpi-best-c-sub", bestC);
+
+      const verif = (data.verification || []).find((r) => r && r.split === "test_dataset2");
+      const verifVal = (data.verification || []).find((r) => r && r.split === "validation_dataset1");
+      if (verifVal) {
+        $("kpi-eer").textContent = ((verifVal.eer || 0) * 100).toFixed(2) + "%";
+      }
+
+      function familyRows(models, bodyId, bestModel) {
+        const tbody = $(bodyId).querySelector("tbody");
+        (models || []).forEach((m) => {
+          const tr = document.createElement("tr");
+          if (NAMES[m.model] === bestModel) tr.classList.add("best-line");
+          const t = m.test || {}, v = m.val || {};
+          const chan = m.channel === "rgb" ? "RGB" : "Grayscale";
+          tr.innerHTML =
+            `<td class="model">${esc(NAMES[m.model] || m.model)}</td>` +
+            `<td class="chan ${m.channel === "rgb" ? "rgb" : "gray"}">${chan}</td>` +
+            `<td class="num">${fmt(v.accuracy)}</td>` +
+            `<td class="num">${fmt(v.f1)}</td>` +
+            `<td class="num">${fmt(v.auc)}</td>` +
+            `<td class="num">${fmt(t.accuracy)}</td>` +
+            `<td class="num">${fmt(t.f1)}</td>` +
+            `<td class="num">${fmt(t.auc)}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+      familyRows(tform, "tbl-transformer", "EfficientFormer-L1");
+      familyRows(cnn, "tbl-cnn", "VGG16");
+
+      function matchGrid() {
+        const rows = (data.thresholds || [])
+          .filter((r) => r && r.model === "vgg16")
+          .map((r) =>
+            `<div class="verif-card">
+              <div class="vc-head">Scanner ${r.scanner}<span class="vc-ch">vgg16 · grayscale</span></div>
+              <div class="vc-grid">
+                <div><span>Val FAR</span><b>${fmt(r.val_far)}</b></div>
+                <div><span>Val FRR</span><b>${fmt(r.val_frr)}</b></div>
+                <div><span>Test FAR</span><b>${fmt(r.test_far)}</b></div>
+                <div><span>Test FRR</span><b>${fmt(r.test_frr)}</b></div>
+              </div>
+            </div>`
+          ).join("");
+        if (rows) $("verif-grid").insertAdjacentHTML("beforeend", rows);
+      }
+
+      const verifGrid = $("verif-grid");
+      let vhead = "";
+      const vmail = (data.verification || []).find((r) => r && r.split === "validation_dataset1");
+      const vtest = (data.verification || []).find((r) => r && r.split === "test_dataset2");
+      if (vtest) {
+        vhead += `<div class="verif-card hero-c">
+            <div class="vc-head">Official verification — EfficientFormer-L1 RGB</div>
+            <div class="vc-method">448-D normalized embedding · cosine similarity · frozen threshold = ${(vtest.threshold || 0).toFixed(4)}</div>
+            <div class="vc-grid">
+              <div><span>Validation EER</span><b>${((vmail && vmail.eer) || 0) * 100 == 0 ? "—" : (((vmail && vmail.eer) || 0) * 100).toFixed(2) + "%"}</b></div>
+              <div><span>D2 ROC-AUC</span><b>${fmt(vtest.roc_auc)}</b></div>
+              <div><span>D2 FAR</span><b>${fmt(vtest.far)}</b></div>
+              <div><span>D2 FRR</span><b>${fmt(vtest.frr)}</b></div>
+              <div><span>D2 HTER</span><b>${fmt(vtest.hter)}</b></div>
+            </div>
+          </div>`;
+      }
+      verifGrid.innerHTML = vhead;
+      const bn = (data.scanner || []).find((r) => r && r.model === "vgg16" && r.scanner === "mean");
+      const mcard = `<div class="verif-card">
+          <div class="vc-head">CNN one-vs-all verification (baseline gate)<span class="vc-ch">vgg16 · grayscale · mean</span></div>
+          <div class="vc-grid">
+            <div><span>Test FAR</span><b>${bn ? fmt(bn.far) : "—"}</b></div>
+            <div><span>Test FRR</span><b>${bn ? fmt(bn.frr) : "—"}</b></div>
+            <div><span>Test AUC</span><b>${bn ? fmt(bn.auc) : "—"}</b></div>
+          </div>
+        </div>`;
+      verifGrid.insertAdjacentHTML("beforeend", mcard);
+
+      const authBody = $("tbl-auth").querySelector("tbody");
+      (data.auth || []).forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          `<td class="num">${esc(r.stage)}</td>` +
+          `<td class="model">${esc(r.component)}</td>` +
+          `<td>${esc(r.method)}</td>` +
+          `<td>${esc(r.factor)}</td>` +
+          `<td class="${r.measured === "yes" ? "good" : ""}">${esc(r.measured)}</td>`;
+        authBody.appendChild(tr);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THFSA — Authentication &amp; Inference Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>try{var t=localStorage.getItem("thfsa-theme");if(t?t==="dark":(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}</script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">THFSA <span class="dot">◉</span><span class="refno">REF · D2/2019</span></div>
+      <nav class="nav">
+        <a href="/results">results</a>
+        <a href="/">dashboard</a>
+        <a href="/archive">archive</a>
+        <a href="/auth" class="on">auth</a>
+      </nav>
+      <span class="mastbar" aria-hidden="true"></span>
+      <div class="chips">
+        <span class="chip hot">four gates</span>
+        <span class="chip">live inference</span>
+        <span class="chip">HMAC mutual auth</span>
+      </div>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle light or dark theme"><span class="sun">☀︎</span><span class="moon">☾︎</span></button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-grid"></div>
+    <div class="wrap hero-body">
+      <div>
+        <p class="kicker">Authentication system · live inference lab</p>
+        <h1>Four gates to<br>a single <span class="amp">key</span></h1>
+        <p class="lede">
+          Register with a <strong>password</strong> (bcrypt), a
+          <strong>passkey</strong> (TOTP), an enrolled
+          <strong>fingerprint</strong>, and a <strong>bound scanner</strong>.
+          Sign in re-checks every factor — the gate trace shows each one live —
+          and the scanner gate is <strong>model-dependent</strong>:
+          <strong>EfficientFormer-L1 RGB</strong> runs the official 448-D
+          cosine verification, while the CNN models run the one-vs-all binary
+          gate. A real <strong>HMAC-SHA256 mutual exchange</strong> then folds
+          all four factors into one session key. Below the account panels,
+          drop any probe on the deck to run the checkpoints directly:
+          <strong>identify</strong> the scanner, <strong>verify</strong> a
+          claim, or replay the mutual handshake.
+        </p>
+      </div>
+      <div class="ridge">
+        <svg viewBox="0 0 260 260" aria-hidden="true">
+          <g fill="none" stroke="rgba(23,21,15,.7)">
+            <circle cx="130" cy="130" r="122" stroke-dasharray="8 13" stroke="rgba(23,21,15,.22)"/>
+            <circle cx="130" cy="130" r="102" stroke-dasharray="14 7" stroke="rgba(23,21,15,.4)"/>
+            <circle cx="130" cy="130" r="80"  stroke-dasharray="9 9"  opacity=".5"/>
+            <circle cx="130" cy="130" r="60"  stroke-dasharray="16 6" opacity=".75"/>
+            <circle cx="130" cy="130" r="38"  stroke-dasharray="7 10" opacity=".55"/>
+            <circle cx="130" cy="130" r="16"  stroke="#c94810" stroke-dasharray="5 6"/>
+          </g>
+          <g stroke="rgba(23,21,15,.45)" stroke-width="1">
+            <path d="M130 0v18M130 242v18M0 130h18M242 130h18"/>
+            <path d="M130 130 205 55M130 130 55 60M130 130 204 202" stroke="#c94810" stroke-dasharray="2 6" opacity=".6"/>
+          </g>
+          <circle cx="130" cy="130" r="3" fill="#c94810" opacity=".95"/>
+        </svg>
+        <div class="sweep"></div>
+        <div class="tag">register · sign in · probe</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">01</span>
+        <h2>Enroll a user</h2>
+        <span class="hint">3-fingerprint enrollment · bind a scanner · passkey secret is shown once</span>
+      </div>
+
+      <div class="auth-grid">
+        <div>
+          <div class="panel auth-panel" style="padding:20px">
+            <div class="panel-tag reg">register</div>
+            <div class="panel-title">Create an account</div>
+            <div class="controls">
+              <div class="field">
+                <span class="label">Username</span>
+                <input type="text" id="reg-user" placeholder="alice" autocomplete="username">
+              </div>
+              <div class="field">
+                <span class="label">Password</span>
+                <input type="password" id="reg-pass" placeholder="min 4 chars" autocomplete="new-password">
+              </div>
+              <div class="field">
+                <span class="label">Confirm password</span>
+                <input type="password" id="reg-pass2" autocomplete="new-password">
+              </div>
+
+              <div class="field">
+                <span class="label">Enrollment fingerprints · 1+ images</span>
+                <label class="file-pick" for="reg-cap">
+                  <b id="reg-cap-name">no file selected</b>
+                  <span class="tag">choose</span>
+                </label>
+                <input type="file" id="reg-cap" accept="image/*" multiple>
+                <div class="sample-row" id="reg-samples"></div>
+              </div>
+
+              <div class="field">
+                <span class="label">Bind scanner (hardware fingerprint)</span>
+                <select id="reg-scanner"></select>
+              </div>
+
+              <button class="btn two" id="btn-register">register</button>
+              <div class="msg" id="reg-msg"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel auth-panel" style="padding:20px">
+            <div class="panel-tag log">sign in</div>
+            <div class="panel-title">Authenticate an existing user</div>
+            <div class="controls">
+              <div class="field">
+                <span class="label">Username</span>
+                <input type="text" id="log-user" placeholder="alice" autocomplete="username">
+              </div>
+              <div class="field">
+                <span class="label">Password</span>
+                <input type="password" id="log-pass" autocomplete="current-password">
+              </div>
+              <div class="field">
+                <span class="label">Passkey code · 6 digits</span>
+                <input type="text" id="log-passcode" placeholder="000000" inputmode="numeric" maxlength="6" pattern="[0-9]*">
+              </div>
+
+              <div class="field">
+                <span class="label">Live fingerprint capture</span>
+                <label class="file-pick" for="log-cap">
+                  <b id="log-cap-name">no file selected</b>
+                  <span class="tag">choose</span>
+                </label>
+                <input type="file" id="log-cap" accept="image/*">
+                <div class="sample-row" id="log-samples"></div>
+              </div>
+
+              <div class="field">
+                <span class="label">Declared scanner</span>
+                <select id="log-scanner"></select>
+              </div>
+
+              <p class="lede" style="margin:0 0 14px;font-size:13px">
+                The scanner gate uses the <strong>Model</strong> selected in the
+                control deck below — EfficientFormer-L1/RGB runs embedding ·
+                cosine, CNN models run binary · sigmoid.</p>
+
+                <input type="hidden" id="log-model" value="efficientformer_l1">
+                <input type="hidden" id="log-channel" value="rgb">
+
+              <button class="btn two" id="btn-login">authenticate</button>
+              <div class="msg" id="log-msg"></div>
+
+              <div class="result-head" id="log-result" style="display:none;margin-top:16px">
+                <span class="verdict" id="log-verdict"></span>
+                <span class="meta" id="log-meta"></span>
+              </div>
+              <div class="steps" id="log-steps"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">02</span>
+        <h2>Live inference lab</h2>
+        <span class="hint">pick a probe · then run a stage</span>
+      </div>
+
+      <div class="infer-grid">
+        <div>
+          <div class="panel deck">
+            <div class="deck-section">
+              <div class="deck-head"><span class="hi">A</span><h3>capture / probe</h3></div>
+              <div class="controls">
+                <div class="field">
+                  <label class="file-pick" for="cap">
+                    <b id="cap-name">no file selected</b>
+                    <span class="tag">choose</span>
+                  </label>
+                  <input type="file" id="cap" accept="image/*">
+                </div>
+                <div class="sample-row" id="samples"></div>
+              </div>
+            </div>
+
+            <div class="deck-section">
+              <div class="deck-head"><span class="hi">B</span><h3>control deck</h3></div>
+              <div class="controls">
+                <div class="field">
+                  <span class="label">Model</span>
+                  <select id="model"></select>
+                </div>
+
+                <div class="field">
+                  <span class="label">Channel</span>
+                  <select id="channel">
+                    <option value="grayscale">grayscale</option>
+                    <option value="rgb">rgb</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <span class="label">Scanner target</span>
+                  <select id="scanner"></select>
+                </div>
+
+                <div class="field">
+                  <span class="label">Shared secret · password</span>
+                  <input type="password" id="password" placeholder="device password">
+                </div>
+                <div class="field">
+                  <span class="label">Server-side (registration) password</span>
+                  <input type="password" id="server-password" placeholder="leave = same as above">
+                </div>
+
+                <div class="actions-3">
+                  <button class="btn" id="btn-identify">identify</button>
+                  <button class="btn" id="btn-verify">verify</button>
+                  <button class="btn" id="btn-mfa">authenticate</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:var(--gap)">
+          <div class="panel">
+            <div class="sec-head sub">
+              <span class="sec-idx">01</span>
+              <h2>identify — which scanner?</h2>
+              <span class="hint">softmax over 10 classes</span>
+            </div>
+            <div class="deck-results">
+              <div class="result-head">
+                <span class="verdict" id="iv-verdict"></span>
+                <span class="meta" id="iv-meta"></span>
+              </div>
+              <div id="iv-ranks"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="sec-head sub">
+              <span class="sec-idx">02</span>
+              <h2>verify — is it scanner <span id="vf-target">N</span>?</h2>
+              <span class="hint" id="vf-hint">model-dependent · embedding/cosine or binary/sigmoid</span>
+            </div>
+            <div class="deck-results">
+              <div class="result-head">
+                <span class="verdict" id="vf-verdict"></span>
+                <span class="meta" id="vf-meta"></span>
+              </div>
+              <div class="rank-row">
+                <span class="sc" id="vf-sc">cosine score</span>
+                <div class="bar"><i id="vf-bar" style="width:0%"></i></div>
+                <span class="p" id="vf-p">—</span>
+              </div>
+              <div class="meta" id="vf-pipeline" style="color:var(--faint);font-size:12px;letter-spacing:.03em;margin:14px 0 4px">Fingerprint Image → scanner verification → Genuine / Impostor</div>
+              <div class="meta" id="vf-kpis" style="color:var(--faint);font-size:12.5px"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="sec-head sub">
+              <span class="sec-idx">03</span>
+              <h2>authenticate — HMAC mutual handshake</h2>
+              <span class="hint">fuse biometric gate + device secret</span>
+            </div>
+            <div class="deck-results">
+              <div class="result-head">
+                <span class="verdict" id="mf-verdict"></span>
+                <span class="meta" id="mf-meta"></span>
+              </div>
+              <div class="steps" id="mf-steps"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">03</span>
+        <h2>Before you log in</h2>
+        <span class="hint">use a Dataset 2 sample whose scanner matches the bound one</span>
+      </div>
+      <div class="panel" style="padding:6px 20px 20px">
+        <p class="lede" style="margin:16px 0 0;font-size:14px">
+          Enrollment stores <strong>only the derived template vector</strong> (no raw
+          fingerprints, no pickle). The one-time passkey base32 secret appears
+          exactly once, in the confirmation overlay right after registering.
+          Sign in runs all four gates — stored password, TOTP code,
+          fingerprint template, scanner verification (model-dependent, via the
+          Model you select: EfficientFormer-L1 RGB 448-D cosine or CNN
+          one-vs-all binary sigmoid) — then the HMAC exchange derives the
+          shared session key, all shown live in the gate trace.
+          The lab below runs the same checkpoints directly on any probe; the
+          first model load takes ~30–60 s on cold start.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%">
+      <span>THFSA — transformer-based hardware fingerprint identification</span>
+      <span>auth: authentication/auth_flow.py · store: thfsa_users.db · lab: scanner_identification.py · scanner_fused_verification.py</span>
+    </div>
+  </footer>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="overlay-card">
+      <div class="o-head">
+        <span class="sec-idx">passkey</span>
+        <h3>Add this secret to your authenticator</h3>
+      </div>
+      <p class="o-sub">Scan this with Google Authenticator (or any TOTP
+        app), enter the secret manually, or use the <code>otpauth://</code>
+        URI with an authenticator that accepts links.</p>
+      <img class="o-qr" id="o-qr" alt="TOTP QR code" src="">
+      <div class="o-secret" id="o-secret"></div>
+      <div class="o-uri" id="o-uri"></div>
+      <div class="o-actions">
+        <button class="btn two" id="btn-secret-ok">I have added it</button>
+        <button class="btn link" id="btn-secret-skip">skip (I'll copy it later)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      let regPicked = { file: null, sample: null };
+      let logPicked = { file: null, sample: null };
+      const $ = (id) => document.getElementById(id);
+
+      async function fetchJSON(path, init) {
+        const r = await fetch(path, init);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || r.status);
+        return data;
+      }
+
+      function fillScanners(select) {
+        for (let i = 1; i <= 10; i++)
+          select.add(new Option('Scanner ' + i, i));
+      }
+
+      function attachFile(input, label, obj, rowId) {
+        input.onchange = () => {
+          obj.files = input.files;
+          obj.file = input.files.length ? input.files[0] : null;
+          obj.sample = null;
+          const multi = input.multiple && input.files.length > 1;
+          label.textContent = obj.file
+            ? multi ? obj.file.name + ' +' + (input.files.length - 1) : obj.file.name
+            : 'no file selected';
+          for (const n of $(rowId).children) n.classList.remove('on');
+        };
+      }
+
+      function buildRegisterForm() {
+        const fd = new FormData();
+        fd.append('username', $('reg-user').value.trim());
+        fd.append('password', $('reg-pass').value);
+        fd.append('password2', $('reg-pass2').value);
+        fd.append('declared_scanner', $('reg-scanner').value);
+        if (regPicked.file) { for (const f of regPicked.files) fd.append('image', f); }
+        else if (regPicked.sample) fd.append('samples', regPicked.sample.name);
+        return fd;
+      }
+
+      function buildLoginForm() {
+        const fd = new FormData();
+        fd.append('username', $('log-user').value.trim());
+        fd.append('password', $('log-pass').value);
+        fd.append('passcode', $('log-passcode').value.trim());
+        fd.append('declared_scanner', $('log-scanner').value);
+        fd.append('model', $('log-model').value);
+        fd.append('channel', $('log-channel').value);
+        if (logPicked.file) fd.append('image', logPicked.file);
+        else if (logPicked.sample) fd.append('samples', logPicked.sample.name);
+        return fd;
+      }
+
+      function showOverlay(d) {
+        $('o-secret').textContent = d.passkey_secret;
+        $('o-uri').textContent = d.otpauth_uri;
+        $('o-qr').src = d.qr_data || '';
+        $('overlay').hidden = false;
+      }
+
+      function renderTrace(boxId, trace) {
+        const box = $(boxId);
+        box.innerHTML = '';
+        for (const s of trace || []) {
+          const div = document.createElement('div');
+          div.className = 'step';
+          div.innerHTML =
+            `<span class="role gate ${s.ok ? 'ok' : 'no'}">gate ${s.gate}</span>` +
+            `<span class="txt"><b>${s.label}</b> — ${s.ok ? 'PASS' : 'FAIL'}` +
+            (s.detail ? ` · ${s.detail}` : '') + `</span>`;
+          box.appendChild(div);
+        }
+      }
+
+      $('btn-register').onclick = async () => {
+        const msg = $('reg-msg');
+        msg.textContent = '';
+        $('btn-register').disabled = true;
+        try {
+          const d = await fetchJSON('/api/auth/register', {
+            method: 'POST', body: buildRegisterForm(),
+          });
+          showOverlay(d);
+        } catch (e) { msg.textContent = 'Error: ' + e.message; }
+        finally { $('btn-register').disabled = false; }
+      };
+
+      $('btn-login').onclick = async () => {
+        const msg = $('log-msg');
+        msg.textContent = '';
+        $('btn-login').disabled = true;
+        try {
+          const d = await fetchJSON('/api/auth/login', {
+            method: 'POST', body: buildLoginForm(),
+          });
+          const v = $('log-verdict');
+          v.textContent = d.ok ? 'AUTHENTICATED' : (d.reason || 'FAILED');
+          v.className = 'verdict ' + (d.ok ? 'ok' : 'no');
+          $('log-meta').innerHTML =
+            (d.predicted_scanner ? 'scanner <b>' + d.predicted_scanner + '</b>' : '') +
+            (d.session_key ? ' · session key <b>' + d.session_key.slice(0, 16) + '…</b>' : '');
+          renderTrace('log-steps', d.trace);
+          $('log-result').style.display = '';
+        } catch (e) { msg.textContent = 'Error: ' + e.message; }
+        finally { $('btn-login').disabled = false; }
+      };
+
+      $('btn-secret-ok').onclick = () => { $('overlay').hidden = true; };
+      $('btn-secret-skip').onclick = () => { $('overlay').hidden = true; };
+
+      fillScanners($('reg-scanner'));
+      fillScanners($('log-scanner'));
+      attachFile($('reg-cap'), $('reg-cap-name'), regPicked, 'reg-samples');
+      attachFile($('log-cap'), $('log-cap-name'), logPicked, 'log-samples');
+
+      buildSampleGroups($('reg-samples'), (s) => {
+        regPicked = { file: null, sample: s, files: null };
+        $('reg-scanner').value = s.scanner;
+        $('reg-cap-name').textContent = s.name;
+      });
+      buildSampleGroups($('log-samples'), (s) => {
+        logPicked = { file: null, sample: s };
+        $('log-scanner').value = s.scanner;
+        $('log-cap-name').textContent = s.name;
+      });
+    })();
+
+    (function () {
+      let picked = { file: null, sample: null };
+      const $ = (id) => document.getElementById(id);
+
+      async function fetchJSON(path, init) {
+        const r = await fetch(path, init);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || r.status);
+        return data;
+      }
+
+      async function init() {
+        const [opts, samples] = await Promise.all([
+          fetchJSON('/api/options'),
+          fetchJSON('/api/samples'),
+        ]);
+        const modelSel = $('model');
+        const pairs = (opts.deck_models || []).map((p) => ({
+          model: p.model,
+          channel: p.channel,
+          gate: p.gate,
+        }));
+        for (const m of pairs)
+          modelSel.add(new Option(`${m.model} · ${m.channel} — ${m.gate}`, `${m.model}|${m.channel}`));
+        const sync = (value) => {
+          const parts = (value || modelSel.value).split('|');
+          window.thfsaModel = parts[0];
+          window.thfsaChannel = parts[1] || 'rgb';
+          $('channel').value = window.thfsaChannel;
+          const lm = $('log-model'), lc = $('log-channel');
+          if (lm) lm.value = window.thfsaModel;
+          if (lc) lc.value = window.thfsaChannel;
+          $('vf-sc').textContent = window.thfsaModel === 'efficientformer_l1'
+            ? 'cosine score' : 'probability';
+          const hint = $('vf-hint');
+          hint.textContent = window.thfsaModel === 'efficientformer_l1'
+            ? 'embedding · cosine · 448-D · frozen threshold 0.3892'
+            : 'binary · sigmoid · frozen threshold';
+          $('vf-pipeline').textContent = window.thfsaModel === 'efficientformer_l1'
+            ? 'Fingerprint Image → EfficientFormer-L1 RGB → 448-D embedding → cosine similarity → Genuine / Impostor → FAR / FRR / EER'
+            : 'Fingerprint Image → CNN one-vs-all binary → sigmoid probability → Genuine / Impostor';
+        };
+        modelSel.onchange = () => sync(modelSel.value);
+        sync(modelSel.value);
+        for (const sc of opts.scanners) $('scanner').add(new Option('Scanner ' + sc, sc));
+
+        buildSampleGroups($('samples'), (s) => {
+          picked = { file: null, sample: s };
+          $('cap-name').textContent = s.name;
+          $('scanner').value = s.scanner;
+        });
+      }
+
+      function setVerdict(el, ok, text) {
+        el.textContent = text;
+        el.className = 'verdict ' + (ok ? 'ok' : 'no');
+      }
+
+      function renderIdent(d, key) {
+        const verdict = key === d.predicted_scanner ? 'IDENTIFIED' : 'MISMATCH';
+        setVerdict($('iv-verdict'), key === d.predicted_scanner,
+          `${verdict} · Scanner ${d.predicted_scanner}`);
+        $('iv-meta').innerHTML = `confidence <b>${(d.confidence*100).toFixed(1)}%</b> · ${d.model}/${d.channel}`;
+        const box = $('iv-ranks');
+        box.innerHTML = '';
+        const top = [...d.top].sort((a, b) => a.scanner - b.scanner);
+        for (const t of top) {
+          const row = document.createElement('div');
+          row.className = 'rank-row';
+          row.innerHTML =
+            `<span class="sc ${t.scanner === d.predicted_scanner ? 'on' : ''}">Scanner ${t.scanner}</span>` +
+            `<span class="bar"><i style="width:${(t.probability*100).toFixed(1)}%"></i></span>` +
+            `<span class="p">${(t.probability*100).toFixed(1)}%</span>`;
+          box.appendChild(row);
+        }
+      }
+
+      function renderVerify(d) {
+        const ok = d.is_match;
+        setVerdict($('vf-verdict'), ok, ok ? 'ACCEPTED · GENUINE' : 'REJECTED · IMPOSTOR');
+        $('vf-target').textContent = d.scanner;
+        const score = d.score != null ? d.score : d.probability;
+        $('vf-bar').style.width = (Math.min(1, Math.max(0, score)) * 100).toFixed(1) + '%';
+        $('vf-p').textContent = score.toFixed(3);
+        const eff = d.model === 'efficientformer_l1';
+        const label = eff ? 'cosine' : 'probability';
+        $('vf-sc').textContent = eff ? 'cosine score' : 'probability';
+        $('vf-meta').innerHTML = `${label} <b>${score.toFixed(3)}</b>` +
+          (d.threshold != null ? ` · frozen threshold <b>${Number(d.threshold).toFixed(4)}</b>` : '') +
+          ` · <b>${eff ? 'EfficientFormer-L1/RGB · embedding · cosine' : (d.model + '/' + d.channel + ' · binary · sigmoid')}</b>`;
+        const o = d.official || {};
+        const pct = (x) => (x == null ? '—' : (x * 100).toFixed(2) + '%');
+        $('vf-kpis').textContent = eff && o.far != null ?
+          `Official Dataset 2 @ frozen threshold → FAR ${pct(o.far)} · FRR ${pct(o.frr)} · EER ${pct(o.eer)}` : '';
+      }
+
+      function renderMfa(d) {
+        setVerdict($('mf-verdict'), d.ok, d.ok ? 'MUTUAL AUTH OK' : (d.reason || 'FAILED'));
+        $('mf-meta').innerHTML = 'predicted ' +
+          (d.predicted_scanner ? `Scanner ${d.predicted_scanner}` : '—') +
+          (d.session_key ? ` · session key <b>${d.session_key.slice(0, 16)}…</b>` : '');
+        const box = $('mf-steps');
+        box.innerHTML = '';
+        for (const s of d.steps) {
+          const div = document.createElement('div');
+          div.className = 'step';
+          div.innerHTML = `<span class="role ${s.role}">${s.role}</span><span class="txt"><b>${s.label}</b> — ${s.detail}</span>`;
+          box.appendChild(div);
+        }
+      }
+
+      async function run(stage) {
+        const fd = new FormData();
+        const mv = ($('model').value || 'efficientformer_l1|rgb').split('|');
+        fd.append('model', mv[0]);
+        fd.append('channel', mv[1] || $('channel').value);
+        if (picked.file) fd.append('image', picked.file);
+        else if (picked.sample) fd.append('sample', picked.sample.name);
+        else return alert('choose a file or a Dataset 2 sample first');
+
+        const url = { identify: '/api/identify', verify: '/api/verify', mfa: '/api/mfa' }[stage];
+        if (stage === 'verify') fd.append('scanner', $('scanner').value);
+        if (stage === 'mfa') {
+          fd.append('declared_scanner', $('scanner').value);
+          fd.append('password', $('password').value || 'demo-secret');
+          if ($('server-password').value) fd.append('server_password', $('server-password').value);
+          if (!$('password').value) $('password').value = 'demo-secret';
+        }
+        try {
+          const data = await fetchJSON(url, { method: 'POST', body: fd });
+          if (stage === 'identify') renderIdent(data, parseInt($('scanner').value));
+          if (stage === 'verify') renderVerify(data);
+          if (stage === 'mfa') renderMfa(data);
+        } catch (e) {
+          alert('Error: ' + e.message);
+        }
+      }
+
+      $('btn-identify').onclick = () => run('identify');
+      $('btn-verify').onclick = () => run('verify');
+      $('btn-mfa').onclick = () => run('mfa');
+      $('cap').onchange = () => {
+        picked = { file: $('cap').files[0], sample: null };
+        $('cap-name').textContent = picked.file ? picked.file.name : 'no file selected';
+        for (const n of $('samples').children) n.classList.remove('on');
+      };
+      init().then(() => {
+        const s5 = [...$('samples').children].find((n) => n.textContent.startsWith('S5'));
+        if (s5) s5.click();
+      });
+    })();
+
+    (function () {
+      const b = document.getElementById("theme-btn");
+      if (b) b.addEventListener("click", function () {
+        var on = document.documentElement.classList.toggle("dark");
+        try { localStorage.setItem("thfsa-theme", on ? "dark" : "light"); } catch (e) {}
+      });
+    })();
+  </script>
+</body>
+</html>

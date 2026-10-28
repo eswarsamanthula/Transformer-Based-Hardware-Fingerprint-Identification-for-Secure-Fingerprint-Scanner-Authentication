@@ -1,0 +1,81 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.envrc
+*.pem
+*.key
+id_rsa
+id_ed25519
+authentication/server_secret.bin
+
+# Local databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+authentication/data/
+
+# Local biometric datasets and generated split manifests
+dataset/*
+!dataset/README.md
+!dataset/.gitkeep
+
+# Model weights and checkpoints
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+checkpoints/*
+!checkpoints/README.md
+!checkpoints/.gitkeep
+
+# Generated logs and prediction caches
+logs/*
+!logs/README.md
+!logs/.gitkeep
+experiments/predictions/
+# Mid-review presentation-only figure generator omitted from the public source bundle.
+experiments/make_mid_review_graphs.py
+
+# Regenerable graphs and intermediate analysis outputs
+results/graphs/
+results/archive/
+results/audit/
+results/metrics/p0/
+results/tables/mid_review_new/
+results/tables/mid_review_verified/
+
+# Local screenshot staging and scratch work
+work/
+
+# Node / frontend build artifacts (not used by the current app)
+node_modules/
+dist/
+build/
+coverage/
+
+# Editors and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.swp

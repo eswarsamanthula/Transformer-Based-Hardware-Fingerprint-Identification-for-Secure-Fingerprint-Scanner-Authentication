@@ -1,0 +1,9 @@
+stage,component,method,factor,measured,notes
+1,User ID,user_store (SQLite user lookup),identity handle,no,not a security factor by itself
+2,Password,bcrypt (checkpw),knowledge factor,no,"protocol gate, no FRR benchmark measured"
+3,User fingerprint verification,user_biometric derived 64-vector cosine template,biometric factor (user identity),no,"academic prototype matcher, not production-grade biometric matching"
+4,Scanner hardware identification,ScannerIdentifierBinary - frozen one-vs-all VGG16-grayscale + MobileNet checkpoints,acquired-device factor,yes,EfficientFormer-L1-RGB moved to fused cosine verification; see efficientformer_l1_rgb_verification.csv
+5,Scanner threshold verification,per-scanner calibrated threshold (validation-frozen),acquired-device factor,yes,val metrics only; see threshold_summary.csv
+6,TOTP second factor,passkey.py RFC-6238 (pyotp),possession factor,no,no independent benchmark measured
+7,HMAC-SHA256 mutual authentication,"K = HMAC(V, t_user || t_server)",channel/session integrity,no,server_secret.bin; verified end-to-end by tests
+8,Session key,shared key after mutual auth,session,no,established only after all gates pass

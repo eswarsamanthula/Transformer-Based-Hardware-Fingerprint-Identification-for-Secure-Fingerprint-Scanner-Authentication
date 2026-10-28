@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THFSA — Project Archive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>try{var t=localStorage.getItem("thfsa-theme");if(t?t==="dark":(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}</script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">THFSA <span class="dot">◉</span><span class="refno">REF · D2/2019</span></div>
+      <nav class="nav">
+        <a href="/results">results</a>
+        <a href="/">dashboard</a>
+        <a href="/archive" class="on">archive</a>
+        <a href="/auth">auth</a>
+      </nav>
+      <span class="mastbar" aria-hidden="true"></span>
+      <div class="chips">
+        <span class="chip hot">project archive</span>
+        <span class="chip">checkpoints</span>
+        <span class="chip">training logs</span>
+      </div>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle light or dark theme"><span class="sun">☀︎</span><span class="moon">☾︎</span></button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-grid"></div>
+    <div class="wrap hero-body">
+      <div>
+        <p class="kicker">Project archive · THFSA_v2</p>
+        <h1>Everything on <span class="amp">disk</span></h1>
+        <p class="lede">
+          The project's own checkpoints, per-epoch training logs, result
+          tables, presentation metrics, and graphs — in
+          <span class="mono-tag">results/</span> exactly as they exist in
+          the working tree.
+        </p>
+        <div class="kpis">
+          <div class="kpi" style="--accent:var(--amber)">
+            <div class="label">Checkpoints</div>
+            <div class="val" id="kpi-ckpt" data-v="0">—</div>
+            <div class="sub" id="kpi-ckpt-sub"></div>
+          </div>
+          <div class="kpi" style="--accent:var(--amber)">
+            <div class="label">Training runs</div>
+            <div class="val" id="kpi-runs" data-v="0">—</div>
+            <div class="sub" id="kpi-runs-sub"></div>
+          </div>
+          <div class="kpi" style="--accent:var(--cyan)">
+            <div class="label">Metric rows</div>
+            <div class="val" id="kpi-rows" data-v="0">—</div>
+            <div class="sub" id="kpi-rows-sub"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ridge">
+        <svg viewBox="0 0 260 260" aria-hidden="true">
+          <g fill="none" stroke="rgba(23,21,15,.7)">
+            <circle cx="130" cy="130" r="122" stroke-dasharray="8 13" stroke="rgba(23,21,15,.22)"/>
+            <circle cx="130" cy="130" r="102" stroke-dasharray="14 7" stroke="rgba(23,21,15,.4)"/>
+            <circle cx="130" cy="130" r="80"  stroke-dasharray="9 9"  opacity=".5"/>
+            <circle cx="130" cy="130" r="60"  stroke-dasharray="16 6" opacity=".75"/>
+            <circle cx="130" cy="130" r="38"  stroke-dasharray="7 10" opacity=".55"/>
+            <circle cx="130" cy="130" r="16"  stroke="#c94810" stroke-dasharray="5 6"/>
+          </g>
+          <g stroke="rgba(23,21,15,.45)" stroke-width="1">
+            <path d="M130 0v18M130 242v18M0 130h18M242 130h18"/>
+            <path d="M130 130 205 55M130 130 55 60M130 130 204 202" stroke="#c94810" stroke-dasharray="2 6" opacity=".6"/>
+          </g>
+          <circle cx="130" cy="130" r="3" fill="#c94810" opacity=".95"/>
+        </svg>
+        <div class="sweep"></div>
+        <div class="tag">checkpoints · logs · results</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="err" class="wrap" hidden></div>
+
+  <main class="wrap">
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">01</span>
+        <h2>Result tables</h2>
+        <span class="hint" id="tables-hint"></span>
+      </div>
+      <div id="tables"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">02</span>
+        <h2>Metric files</h2>
+        <span class="hint" id="metrics-hint"></span>
+      </div>
+      <div id="metrics"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">03</span>
+        <h2>Graphs</h2>
+        <span class="hint" id="graphs-hint"></span>
+      </div>
+      <div class="graphs-grid" id="graphs"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">04</span>
+        <h2>Checkpoint inventory</h2>
+        <span class="hint" id="ckpt-hint"></span>
+      </div>
+      <div class="panel">
+        <table class="data" id="tbl-ckpt">
+          <thead>
+            <tr><th>Category</th><th>Checkpoint</th><th>Size</th><th>Kind</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="sec-idx">05</span>
+        <h2>Training logs</h2>
+        <span class="hint" id="logs-hint"></span>
+      </div>
+      <div class="panel">
+        <table class="data" id="tbl-logs">
+          <thead>
+            <tr><th>Run</th><th>Source</th><th>Epochs</th><th>Final val acc</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%">
+      <span>THFSA — transformer-based hardware fingerprint identification</span>
+      <span>sources: results/tables · results/metrics · results/graphs · logs/training</span>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    "use strict";
+    var fmt = function (v, d) { return v == null ? "\u2014" : (v * 100).toFixed(d == null ? 1 : d) + "%"; };
+    var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    }); };
+
+    function countUp(el, target, decimals, suffix) {
+      var ms = 620, t0 = null;
+      suffix = suffix || "";
+      function frame(t) {
+        if (!t0) t0 = t;
+        var p = Math.min(1, (t - t0) / ms);
+        el.textContent = (target * p).toFixed(decimals == null ? 0 : decimals) + suffix;
+        if (p < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    fetch("/api/repo")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { render(d); })
+      ["catch"](function (e) {
+        var el = document.getElementById("err");
+        el.hidden = false;
+        el.innerHTML = "<em style='color:var(--bad)'>Failed to load archive: " + e + "</em>";
+      });
+
+    function render(d) {
+      d.metrics = d.metrics || [];
+      d.graphs = d.graphs || [];
+      var totalMb = d.checkpoints.reduce(function (s, c) { return s + c.size_mb; }, 0);
+      var metricRows = d.tables.reduce(function (s, t) { return s + t.rows.length; }, 0);
+
+      countUp(document.getElementById("kpi-ckpt"), d.checkpoints.length, 0);
+      document.getElementById("kpi-ckpt-sub").textContent = totalMb.toFixed(0) + " MB";
+      countUp(document.getElementById("kpi-runs"), d.logs.length, 0);
+      document.getElementById("kpi-runs-sub").textContent = "logs/training[/colab]";
+      countUp(document.getElementById("kpi-rows"), metricRows, 0);
+      document.getElementById("kpi-rows-sub").textContent = (d.tables.length + d.metrics.length) + " tables + metrics";
+      renderTables(d.tables);
+      renderMetrics(d.metrics);
+      renderGraphs(d.graphs);
+      renderCheckpoints(d.checkpoints);
+      renderLogs(d.logs);
+    }
+
+    function renderTables(tables) {
+      document.getElementById("tables-hint").textContent = tables.length + " files";
+      var out = document.getElementById("tables");
+      tables.forEach(function (t) {
+        if (!t.rows.length) return;
+        var head = document.createElement("div");
+        head.className = "sec-head sub";
+        head.innerHTML = "<h2>" + esc(t.name) + "</h2><span class='hint'>" + t.rows.length + " rows</span>";
+        out.appendChild(head);
+
+        var panel = document.createElement("div");
+        panel.className = "panel";
+        var table = document.createElement("table");
+        table.className = "data";
+        var thead = "<tr>" + t.columns.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr>";
+        var body = t.rows.map(function (r) {
+          return "<tr>" + t.columns.map(function (c) {
+            var v = r[c];
+            return "<td class='num'>" + (typeof v === "number" ? (+v).toFixed(3) : esc(v)) + "</td>";
+          }).join("") + "</tr>";
+        }).join("");
+        table.innerHTML = "<thead>" + thead + "</thead><tbody>" + body + "</tbody>";
+        panel.appendChild(table);
+        out.appendChild(panel);
+      });
+    }
+
+    function renderMetrics(metrics) {
+      var out = document.getElementById("metrics");
+      document.getElementById("metrics-hint").textContent = metrics.length + " files";
+      metrics.forEach(function (m) {
+        var head = document.createElement("div");
+        head.className = "sec-head sub";
+        head.innerHTML = "<h2>" + esc(m.name) + "</h2><span class='hint'>" + m.rows.length + " rows</span>";
+        out.appendChild(head);
+
+        var panel = document.createElement("div");
+        panel.className = "panel";
+        var pre = document.createElement("pre");
+        pre.textContent = m.columns.join("  |  ");
+        panel.appendChild(pre);
+        out.appendChild(panel);
+      });
+      var link = document.createElement("p");
+      link.className = "res-note";
+      link.innerHTML = "Full rendering of these metric files is on the <a href='/results' style='color:inherit'>/results</a> page.";
+      out.appendChild(link);
+    }
+
+    function renderGraphs(graphs) {
+      document.getElementById("graphs-hint").textContent = graphs.length + " files";
+      var out = document.getElementById("graphs");
+      graphs.forEach(function (g) {
+        var wrap = document.createElement("div");
+        wrap.className = "panel chart-cell";
+        var img = document.createElement("img");
+        img.className = "rg";
+        img.src = "/results/graphs/" + encodeURIComponent(g);
+        img.alt = g;
+        img.loading = "lazy";
+        wrap.appendChild(img);
+        var cap = document.createElement("div");
+        cap.className = "graph-cap";
+        cap.textContent = g;
+        wrap.appendChild(cap);
+        out.appendChild(wrap);
+      });
+    }
+
+    function renderCheckpoints(ckpts) {
+      document.getElementById("ckpt-hint").textContent = ckpts.length + " .pt files";
+      var tbody = document.querySelector("#tbl-ckpt tbody");
+      ckpts.forEach(function (c) {
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td><span class='badge " + (c.category === "cnn" ? "cnn" : "vit") + "'>" + esc(c.category) + "</span></td>" +
+          "<td class='model'>" + esc(c.name) + "</td>" +
+          "<td class='num'>" + c.size_mb + " MB</td>" +
+          "<td class='num'>" + (c.binary ? "binary" : "multiclass") + "</td>";
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderLogs(logs) {
+      document.getElementById("logs-hint").textContent = logs.length + " runs";
+      var tbody = document.querySelector("#tbl-logs tbody");
+      logs.forEach(function (l) {
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td class='model'>" + esc(l.run) + "</td>" +
+          "<td class='num'>" + esc(l.source) + "</td>" +
+          "<td class='num'>" + l.epochs + "</td>" +
+          "<td class='num'>" + fmt(l.final_val_acc, 1) + "</td>";
+        tbody.appendChild(tr);
+      });
+    }
+  })();
+  document.getElementById("theme-btn").addEventListener("click", function () {
+    var on = document.documentElement.classList.toggle("dark");
+    try { localStorage.setItem("thfsa-theme", on ? "dark" : "light"); } catch (e) {}
+  });
+  </script>
+</body>
+</html>
